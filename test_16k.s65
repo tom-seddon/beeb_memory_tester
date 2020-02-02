@@ -1,3 +1,18 @@
+;-------------------------------------------------------------------------
+; The BBC Micro memory tester is free software: you can redistribute it
+; and/or modify it under the terms of the GNU General Public License as
+; published by the Free Software Foundation, either version 3 of the
+; License, or (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code. If not, see <https://www.gnu.org/licenses/>.
+;-------------------------------------------------------------------------
+
                 .include "submodules/beeb/include/beeb.s65"
 
 ;-------------------------------------------------------------------------
@@ -51,7 +66,6 @@ print_message: .macro dest_addr,prefix,msb,lsb
 
 *=$2000
                 .dsection code
-test_mode=3
 
 ;-------------------------------------------------------------------------
 
@@ -60,7 +74,7 @@ test_mode=3
 start:
                 lda #22
                 jsr oswrch
-                lda #test_mode
+                lda #mode
                 jsr oswrch
 
                 sei
@@ -79,7 +93,8 @@ start:
                 .next
                 inx
                 bne -
-                
+
+                .if mode!=7
                 lda #12
                 sta $fe00
                 lda #>(test_address>>3)
@@ -89,6 +104,7 @@ start:
                 sta $fe00
                 lda #<(test_address>>3)
                 sta $fe01
+                .endif
                 
                 jmp main
                 
@@ -148,14 +164,6 @@ bad:
                 dex
                 bpl -
 
-;-------------------------------------------------------------------------
-
-; TODO - doesn't need to be a macro any more...
-textmode: .macro
-                .set_mode $4a,mode7_crtc_values,$2800
-                .endm
-                
-                
                 ldx #0
                 lda #32
 -
@@ -201,8 +209,9 @@ mode7_crtc_values:
 ;-------------------------------------------------------------------------
 
 values: .block
-                .byte 1,2,4,8,16,32,64,128
-                .byte $aa,$55
+                .byte 1,0,2,0,4,0,8,0,16,0,32,0,64,0,128,0
+                .byte $aa,0
+                .byte $55,0
 end:
                 .bend
 
