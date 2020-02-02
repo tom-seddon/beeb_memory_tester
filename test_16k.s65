@@ -1,15 +1,237 @@
+                .include "submodules/beeb/include/beeb.s65"
+
+;-------------------------------------------------------------------------
+
+print_nybble: .macro dest_addr
+                clc
+                sed
+                adc #$90
+                adc #$40
+                cld
+                sta \dest_addr
+                .endm
+
+;-------------------------------------------------------------------------
+
+print_hex: .macro dest_addr
+                sta reload_a+1
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                .print_nybble \dest_addr+0
+reload_a:
+                lda #$ff
+                and #$0f
+                .print_nybble \dest_addr+1
+                .endm
+
+;-------------------------------------------------------------------------
+
+print_message: .macro dest_addr,prefix,msb,lsb
+                .for print_message__index=0,print_message__index<len(\prefix),print_message__index+=1
+                lda #\prefix[print_message__index]
+                sta \dest_addr+print_message__index
+                .next
+
+                lda \msb
+                .print_hex \dest_addr+len(\prefix)
+                
+                .if \lsb>=0
+                lda \lsb
+                .print_hex \dest_addr+len(\prefix)+2
+                .endif
+                
+                .endm
+
+;-------------------------------------------------------------------------
+
+set_mode: .macro ula_control,crtc_values,crtc_addr
+                lda #\ula_control
+                sta video_ula_control
+
+                ldx #$0f
+-
+                lda black_and_white_palette,x
+                sta video_ula_palette
+                dex
+                bpl -
+
+                ldx #11
+-
+                stx $fe00
+                lda \crtc_values,x
+                sta $fe01
+                dex
+                bpl -
+
+                lda #12
+                sta $fe00
+                lda #>\crtc_addr
+                sta $fe01
+
+                lda #13
+                sta $fe00
+                lda #<\crtc_addr
+                sta $fe01
+                .endm
+
+;-------------------------------------------------------------------------
+
+graphicsmode: .macro
+                ; .set_mode $88,mode6_crtc_values,memory>>3
+                .set_mode $9c,mode3_crtc_values,memory>>3
+                .endm
+
+textmode: .macro
+                .set_mode $4a,mode7_crtc_values,$2800
+                .endm
+                
+;-------------------------------------------------------------------------
+
                 .dsection code
 
                 .section code
 main:
+
+                sei
+
+                .graphicsmode
+
+                ; https://stardot.org.uk/forums/viewtopic.php?t=17129
+                lda #$7f
+                sta $fe4e
+                
+tester_loop:
+                ldy #0
+values_loop:
                 ldx #0
-                rts
+                
+                ; lda values,y
+                ; .print_hex $7c00
+                
+                lda values,y
+fill_loop:
+                .for i=0,i<64,i+=1
+                sta memory+i*256,x
+                .next
+                inx
+                bne fill_loop
+
+                ldx #0
+check_loop:
+                .for i=0,i<64,i+=1
+                lda memory+i*256,x
+                cmp values,y
+                beq +
+                sta actual_value
+                stx bad_addr+0
+                ldx #>(memory+i*256)
+                stx bad_addr+1
+                lda values,y
+                sta expected_value
+                jmp bad
++
+                .next
+                inx
+                bne check_loop
+
+                iny
+                cpy #values.end-values
+                bne values_loop
+                jmp tester_loop
+
+bad:
+                .textmode
+                
+                ldx #0
+                lda #32
+-
+                ; clear out some stuff...
+                ; sta $0000,x
+                ; sta $0100,x
+                ; sta $0200,x
+                ; sta $0d00,x
+                sta $7c00,x
+                sta $7d00,x
+                sta $7e00,x
+                sta $7f00,x
+                inx
+                bne -
+
+                .print_message $7c00,"Addr:     &",bad_addr+1,bad_addr+0
+                .print_message $7c28,"Expected: &",expected_value+0,-1
+                .print_message $7c50,"Actual:   &",actual_value+0,-1
+
+halt:
+                jmp halt
+
+bad_addr:
+                .word 0
+expected_value:
+                .byte 0
+actual_value:
+                .byte 0
 
 ;-------------------------------------------------------------------------
 
+mode7_crtc_values:
+                .byte  $3F  ; 0 Horizontal Total     =64
+                .byte  $28  ; 1 Horizontal Displayed =40
+                .byte  $33  ; 2 Horizontal Sync      =&33  Note: &31 is a better value
+                .byte  $24  ; 3 HSync Width+VSync    =&24  VSync=2, HSync=4
+                .byte  $1E  ; 4 Vertical Total       =30
+                .byte  $02  ; 5 Vertical Adjust      =2
+                .byte  $19  ; 6 Vertical Displayed   =25
+                .byte  $1B  ; 7 VSync Position       =&1B
+                .byte  $93  ; 8 Interlace+Cursor     =&93  Cursor=2, Display=1, Interlace=Sync+Video
+                .byte  $12  ; 9 Scan Lines/Character =19
+                .byte  $72 ;10 Cursor Start Line    =&72  Blink=On, Speed=1/32, Line=18
+                .byte  $13  ;11 Cursor End Line      =19
+
+;-------------------------------------------------------------------------
+
+mode3_crtc_values:
+                .byte $7F  ; 0 Horizontal Total     =128
+                .byte $50  ; 1 Horizontal Displayed =80
+                .byte $62  ; 2 Horizontal Sync      =&62
+                .byte $28  ; 3 HSync Width+VSync    =&28  VSync=2, HSync=8
+                .byte $1E  ; 4 Vertical Total       =30
+                .byte $02  ; 5 Vertical Adjust      =2
+                .byte $19  ; 6 Vertical Displayed   =25
+                .byte $1B  ; 7 VSync Position       =&1B
+                .byte $01  ; 8 Interlace+Cursor     =&01  Cursor=0, Display=0, Interlace=Sync
+                .byte $09  ; 9 Scan Lines/Character =10
+                .byte $67  ;10 Cursor Start Line    =&67  Blink=On, Speed=1/32, Line=7
+                .byte $09  ;11 Cursor End Line      =9
+
+;-------------------------------------------------------------------------
+
+mode6_crtc_values:
+                .byte $3F  ; 0 Horizontal Total     =64
+                .byte $28  ; 1 Horizontal Displayed =40
+                .byte $31  ; 2 Horizontal Sync      =&31
+                .byte $24  ; 3 HSync Width+VSync    =&24  VSync=2, HSync=4
+                .byte $1E  ; 4 Vertical Total       =30
+                .byte $02  ; 5 Vertical Adjust      =0
+                .byte $19  ; 6 Vertical Displayed   =25
+                .byte $1B  ; 7 VSync Position       =&1B
+                .byte $01  ; 8 Interlace+Cursor     =&01  Cursor=0, Display=0, Interlace=Sync
+                .byte $09  ; 9 Scan Lines/Character =10
+                .byte $67  ;10 Cursor Start Line    =&67  Blink=On, Speed=1/32, Line=7
+                .byte $09  ;11 Cursor End Line      =9
+
+;-------------------------------------------------------------------------
+
+black_and_white_palette:
+                .byte $07,$17,$27,$37,$47,$57,$67,$77
+                .byte $80,$90,$a0,$b0,$c0,$d0,$ef,$ff
+                
+;-------------------------------------------------------------------------
+
 values: .block
-                .byte 1,2,4,8,16,32,64,128
-                .byte $aa,$55
+                .byte 1;,2,4,8,16,32,64,128
+                ; .byte $aa,$55
 end:
                 .bend
 

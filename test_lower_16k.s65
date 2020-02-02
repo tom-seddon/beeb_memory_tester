@@ -1,0 +1,4 @@
+*=$4000
+memory=0
+                .include "test_16k.s65"
+                
