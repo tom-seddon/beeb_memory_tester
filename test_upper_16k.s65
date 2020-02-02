@@ -1,4 +1,4 @@
-*=$2000
-memory=$4000
+test_address=$4000
+code_address=$3000
                 .include "test_16k.s65"
                 

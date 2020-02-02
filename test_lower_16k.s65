@@ -1,4 +1,4 @@
-*=$4000
-memory=0
+test_address=$0000
+code_address=$4000
                 .include "test_16k.s65"
                 
