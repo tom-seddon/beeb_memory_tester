@@ -1,13 +1,12 @@
 # BBC Micro memory tester
 
-Download 
+To use on your BBC Micro, download `beeb_memory_tester.ssd` and write
+it to a floppy disk.
 
-The memory is tested 16 K at a time.
-
-There are three test programs for the lower half: `Tlower3` (runs in
-mode 3), `Tlower4` (runs in mode 4) and `Tlower7` (runs in mode 7).
-`Tupper3`, `Tupper4` and `Tupper7` test the upper half of memory in
-the same way.
+The memory is tested 16 K at a time. There are three test programs for
+the lower half - `Tlower3` (runs in mode 3), `Tlower4` (runs in mode
+4) and `Tlower7` (runs in mode 7) - and three for the upper half,
+similarly: `Tupper3`, `Tupper4` and `Tupper7`.
 
 The test process continues indefinitely until an error is found or you
 press BREAK. For all except `Tlower7`, you'll see stuff happening on
