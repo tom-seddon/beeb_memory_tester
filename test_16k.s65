@@ -1,0 +1,17 @@
+                .dsection code
+
+                .section code
+main:
+                ldx #0
+                rts
+
+;-------------------------------------------------------------------------
+
+values: .block
+                .byte 1,2,4,8,16,32,64,128
+                .byte $aa,$55
+end:
+                .bend
+
+                .send
+                
