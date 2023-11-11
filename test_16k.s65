@@ -97,12 +97,12 @@ start:
                 .if mode!=7
                 lda #12
                 sta $fe00
-                lda #>(test_base_address>>3)
+                lda #>(test_page_addresses[0]>>3)
                 sta $fe01
 
                 lda #13
                 sta $fe00
-                lda #<(test_base_address>>3)
+                lda #<(test_page_addresses[0]>>3)
                 sta $fe01
                 .endif
                 
@@ -123,7 +123,7 @@ values_loop:
                 lda values,y
 fill_loop:
                 .for i=0,i<64,i+=1
-                sta test_base_address+i*256,x
+                sta test_page_addresses[i],x
                 .next
                 inx
                 bne fill_loop
@@ -131,12 +131,12 @@ fill_loop:
                 ldx #0
 check_loop:
                 .for i=0,i<64,i+=1
-                lda test_base_address+i*256,x
+                lda test_page_addresses[i],x
                 cmp values,y
                 beq +
                 sta actual_value
                 stx bad_addr+0
-                ldx #>(test_base_address+i*256)
+                ldx #>test_page_addresses[i]
                 stx bad_addr+1
                 lda values,y
                 sta expected_value

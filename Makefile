@@ -19,12 +19,13 @@
 ##########################################################################
 
 ifeq ($(OS),Windows_NT)
-TASS?=bin\64tass.exe
+TASS?=64tass
+PYTHON?=py -3
 else
 TASS?=64tass
+PYTHON?=python
 endif
 
-PYTHON?=python
 
 TASSCMD:=$(TASS) --m65c02 --cbm-prg -Wall -C --line-numbers --long-branch
 

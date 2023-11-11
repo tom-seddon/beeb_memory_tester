@@ -13,7 +13,10 @@
 ; along with this code. If not, see <https://www.gnu.org/licenses/>.
 ;-------------------------------------------------------------------------
 
-test_base_address=$4000
+test_page_addresses:=[]
+                .for i:=0,i<64,i+=1
+test_page_addresses..=[($40+i)*256]
+                .endfor
 code_base_address=$3000
                 .include "test_16k.s65"
                 
